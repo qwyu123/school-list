@@ -294,18 +294,18 @@
   /* 底部 Dock - 液态玻璃胶囊 */
   .dock-wrap {
     position:fixed; left:0; right:0; bottom:0; z-index:999;
-    padding: 0 24px calc(env(safe-area-inset-bottom) + 14px);
+    padding: 0 24px calc(env(safe-area-inset-bottom) + 10px);
     pointer-events:none; display:flex; justify-content:center;
   }
   .dock {
     display:flex; justify-content:space-around; align-items:center;
     pointer-events:auto;
     background: rgba(255,255,255,0.55);
-    border-radius: 40px;
+    border-radius: 32px;
     backdrop-filter: blur(60px) saturate(200%);
     -webkit-backdrop-filter: blur(60px) saturate(200%);
     box-shadow: 0 24px 60px rgba(45,70,110,0.16), inset 0 2px 0 rgba(255,255,255,0.95);
-    padding: 8px 10px;
+    padding: 6px 8px;
     border: 1px solid transparent; background-clip:padding-box;
     position:relative;
   }
@@ -319,17 +319,17 @@
   }
   [data-theme="dark"] .dock::before { background: linear-gradient(135deg, rgba(255,255,255,0.35), transparent 40%, transparent 60%, rgba(255,255,255,0.15)); }
   .dock-item {
-    display:flex; flex-direction:column; align-items:center; gap:3px;
-    padding:10px 34px; border-radius:999px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding: 7px 28px; border-radius: 999px; cursor:pointer;
     transition: all .3s cubic-bezier(.16,1,.3,1); user-select:none;
   }
   .dock-item.active { background: rgba(255,255,255,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9); }
   [data-theme="dark"] .dock-item.active { background: rgba(255,255,255,0.12); }
-  .dock-icon { font-size:26px; line-height:1; color:#1c1c1e; transition: all .3s; }
+  .dock-icon { font-size:20px; line-height:1; color:#1c1c1e; transition: all .3s; }
   .dock-item.active .dock-icon { color:#4a90d9; transform: scale(1.08); }
   [data-theme="dark"] .dock-icon { color:#d5d7dd; }
   [data-theme="dark"] .dock-item.active .dock-icon { color:#7ab0e8; }
-  .dock-text { font-size:10px; color:#1c1c1e; }
+  .dock-text { font-size:9px; color:#1c1c1e; }
   .dock-item.active .dock-text { color:#4a90d9; font-weight:600; }
   [data-theme="dark"] .dock-text { color:#d5d7dd; }
   [data-theme="dark"] .dock-item.active .dock-text { color:#7ab0e8; }
