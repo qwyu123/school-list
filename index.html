@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>开学行李清单</title>
+<meta name="description" content="选择学校，自动倒计时，可编辑行李清单">
+<style>
+  /* ========== Liquid Glass 液态玻璃 ========== */
+  :root {
+    --bg: #eef2f7;
+    --glow-1: rgba(96,165,250,0.28);
+    --glow-2: rgba(167,213,190,0.28);
+    --glow-3: rgba(196,181,253,0.2);
+    --text: #1d2126;
+    --text-dim: #6b7280;
+    --text-faint: #9aa3ad;
+    --accent: #4a90d9;
+    --accent-bright: #6aa8e8;
+    --accent-soft: rgba(74,144,217,0.12);
+    --glass: rgba(255,255,255,0.42);
+    --glass-strong: rgba(255,255,255,0.58);
+    --glass-border: rgba(255,255,255,0.75);
+    --glass-hi: rgba(255,255,255,0.9);
+    --shadow: 0 24px 64px rgba(45,70,110,0.14);
+    --hairline: rgba(0,0,0,0.06);
+    --ok: #58a06b;
+    --danger: #d06a5e;
+  }
+  [data-theme="dark"] {
+    --bg: #101218;
+    --glow-1: rgba(96,165,250,0.16);
+    --glow-2: rgba(167,213,190,0.12);
+    --glow-3: rgba(140,130,220,0.14);
+    --text: #ececf1;
+    --text-dim: #8f96a3;
+    --text-faint: #5a6070;
+    --accent: #7ab0e8;
+    --accent-bright: #9cc4f0;
+    --accent-soft: rgba(122,176,232,0.16);
+    --glass: rgba(40,44,56,0.4);
+    --glass-strong: rgba(40,44,56,0.55);
+    --glass-border: rgba(255,255,255,0.16);
+    --glass-hi: rgba(255,255,255,0.28);
+    --shadow: 0 24px 64px rgba(0,0,0,0.5);
+    --hairline: rgba(255,255,255,0.08);
+    --ok: #8fbf8f;
+    --danger: #c0655a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100dvh;
+    transition: background .5s, color .5s;
+    overflow-x: hidden;
+  }
+  /* 背景光斑 */
+  body::before, body::after {
+    content:''; position: fixed; pointer-events:none; z-index:0;
+  }
+  body::before {
+    top:-20%; left:-18%; width:75%; height:65%;
+    background: radial-gradient(ellipse at 30% 30%, var(--glow-1), transparent 65%);
+  }
+  body::after {
+    bottom:-22%; right:-18%; width:70%; height:60%;
+    background: radial-gradient(ellipse at 60% 60%, var(--glow-2), transparent 65%);
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 20px 20px 140px; position: relative; z-index: 1; }
+
+  /* 椭圆导航 */
+  .nav {
+    display:flex; align-items:center; justify-content:space-between;
+    margin: 20px 0 24px; padding: 10px 14px;
+    border-radius: 999px;
+    background: var(--glass);
+    backdrop-filter: blur(60px) saturate(200%);
+    -webkit-backdrop-filter: blur(60px) saturate(200%);
+    box-shadow: var(--shadow), inset 0 2px 0 var(--glass-hi);
+    border: 1px solid transparent; background-clip: padding-box;
+    position: relative;
+  }
+  .nav::before {
+    content:''; position:absolute; inset:-1px; border-radius:inherit; padding:1px;
+    background: linear-gradient(135deg, var(--glass-hi), transparent 45%, transparent 65%, rgba(255,255,255,0.35));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events:none;
+  }
+  .nav-title { font-size:17px; font-weight:600; letter-spacing:1px; flex:1; text-align:center; }
+  .nav-side { width:44px; display:flex; align-items:center; }
+  .nav-side.right { justify-content:flex-end; }
+  .nav-btn {
+    width:40px; height:34px; border-radius:999px;
+    background: var(--glass); border:1px solid var(--glass-border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; cursor:pointer; user-select:none;
+    box-shadow: inset 0 1px 0 var(--glass-hi);
+    transition: transform .3s cubic-bezier(.16,1,.3,1);
+  }
+  .nav-btn:active { transform: scale(.88) rotate(15deg); }
+
+  /* 品牌行 */
+  .header { display:flex; justify-content:space-between; align-items:center; padding: 24px 4px 18px; }
+  .brand { font-size:12px; letter-spacing:4px; color:var(--accent); font-weight:600; text-transform:uppercase; }
+  .today { font-size:12px; color:var(--text-dim); }
+
+  /* 倒计时 */
+  .countdown { margin-bottom:28px; }
+  .cd-label { font-size:12px; color:var(--text-dim); letter-spacing:4px; margin-bottom:10px; display:flex; align-items:center; }
+  .cd-label::after { content:''; width:60px; height:1px; background:var(--accent); opacity:.5; margin-left:14px; }
+  .cd-number { display:flex; align-items:baseline; }
+  .cd-days { font-size: clamp(100px, 26vw, 160px); font-weight:700; line-height:1; letter-spacing:-4px; color:var(--text); transition:color .5s; }
+  .cd-unit { font-size:20px; color:var(--accent); letter-spacing:3px; margin-left:10px; }
+  .cd-meta { margin-top:14px; font-size:14px; color:var(--text-dim); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .school-name { color:var(--text); font-weight:600; }
+  .cd-change { color:var(--accent); font-size:12px; cursor:pointer; }
+  .cd-info { margin-top:6px; font-size:12px; color:var(--text-faint); }
+
+  /* 玻璃卡片 */
+  .glass {
+    position:relative; z-index:1;
+    background: var(--glass);
+    border-radius: 24px;
+    backdrop-filter: blur(60px) saturate(200%);
+    -webkit-backdrop-filter: blur(60px) saturate(200%);
+    box-shadow: var(--shadow), inset 0 2px 0 var(--glass-hi), inset 0 -2px 0 rgba(255,255,255,0.12);
+    padding: 22px; margin-bottom: 18px;
+    border: 1px solid transparent; background-clip: padding-box;
+    transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s;
+  }
+  .glass::before {
+    content:''; position:absolute; inset:-1px; border-radius:inherit; padding:1px;
+    background: linear-gradient(135deg, var(--glass-hi), transparent 40%, transparent 60%, rgba(255,255,255,0.35));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events:none; z-index:2;
+  }
+  .glass:active { transform: translateY(-2px) scale(.99); }
+  .sheen { overflow:hidden; }
+  .sheen::after {
+    content:''; position:absolute; top:0; left:-60%; width:45%; height:100%;
+    background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.22) 50%, transparent 80%);
+    animation: sheenMove 5s ease-in-out infinite;
+    pointer-events:none; z-index:2;
+  }
+  @keyframes sheenMove { 0%{transform:translateX(0)} 60%{transform:translateX(360%)} 100%{transform:translateX(360%)} }
+
+  .card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .tag { font-size:11px; color:var(--accent); letter-spacing:3px; font-weight:600; text-transform:uppercase; }
+  .go-link { font-size:13px; color:var(--accent); cursor:pointer; }
+
+  /* 选择学校 */
+  .picker-row { display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--hairline); }
+  .picker-row:last-of-type { border-bottom:none; }
+  .picker-label { color:var(--text-dim); font-size:14px; }
+  .picker-value { color:var(--text); font-size:15px; font-weight:500; }
+  .picker-arrow { color:var(--text-faint); font-size:13px; }
+  .hint-text { font-size:11px; color:var(--text-faint); margin-top:8px; }
+  .btn-ghost {
+    margin-top:16px; display:block; width:100%;
+    background: var(--glass); color:var(--accent);
+    border:1px solid var(--glass-border); border-radius:999px;
+    font-size:15px; padding:12px 0; cursor:pointer;
+    backdrop-filter: blur(40px); box-shadow: inset 0 1px 0 var(--glass-hi);
+  }
+  .btn-primary {
+    display:block; width:100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-bright));
+    color:#fff; border:none; border-radius:999px;
+    font-size:16px; font-weight:600; padding:14px 0; cursor:pointer;
+    box-shadow: 0 12px 32px rgba(74,144,217,0.35), inset 0 2px 0 rgba(255,255,255,0.35);
+  }
+  .remind-desc { font-size:13px; color:var(--text-dim); margin-bottom:14px; }
+
+  /* 进度 */
+  .progress-row { display:flex; align-items:baseline; margin-bottom:12px; }
+  .progress-num { font-size:40px; font-weight:700; color:var(--accent); }
+  .progress-total { font-size:14px; color:var(--text-dim); margin-left:8px; }
+  .progress-bar { height:6px; background:var(--glass-strong); border-radius:999px; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg, var(--accent), var(--accent-bright)); border-radius:999px; transition:width .5s cubic-bezier(.16,1,.3,1); box-shadow:0 0 12px var(--accent); }
+  .progress-tip { margin-top:10px; font-size:12px; color:var(--text-dim); }
+
+  /* 清单 */
+  .group { padding: 6px 0 12px; }
+  .group-head { display:flex; justify-content:space-between; align-items:center; padding: 12px 16px 8px; }
+  .group-title { font-size:11px; letter-spacing:3px; color:var(--accent); font-weight:600; text-transform:uppercase; }
+  .group-actions { display:flex; gap:14px; }
+  .act { font-size:11px; color:var(--text-dim); cursor:pointer; }
+  .act.danger { color:var(--danger); }
+  .item { display:flex; align-items:flex-start; gap:12px; padding:12px 16px; border-radius:12px; cursor:pointer; transition:background .25s; }
+  .item:hover { background: var(--accent-soft); }
+  .box {
+    width:22px; height:22px; border-radius:50%;
+    border:2px solid rgba(141,143,150,0.55); flex-shrink:0; margin-top:2px;
+    display:flex; align-items:center; justify-content:center;
+    transition: all .3s cubic-bezier(.16,1,.3,1);
+  }
+  .box.done { background:var(--ok); border-color:var(--ok); box-shadow:0 0 16px rgba(143,191,143,0.5); }
+  .tick { color:#fff; font-size:12px; font-weight:700; }
+  .item-body { flex:1; display:flex; flex-direction:column; }
+  .label { font-size:14px; line-height:1.5; }
+  .label.done { color:var(--text-faint); text-decoration:line-through; }
+  .hint { font-size:11px; color:var(--text-dim); margin-top:1px; }
+  .add-item { display:flex; align-items:center; justify-content:center; gap:6px; padding:12px; color:var(--text-dim); font-size:12px; border-top:1px solid var(--hairline); margin-top:6px; cursor:pointer; }
+  .add-group {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:14px; border:2px dashed var(--accent); border-radius:16px;
+    color:var(--accent); font-size:14px; background:var(--glass); cursor:pointer; margin-bottom:18px;
+  }
+  .add-icon { font-size:18px; font-weight:600; }
+  .footer-tip { text-align:center; font-size:11px; color:var(--text-faint); margin-top:24px; }
+
+  /* 底部 Dock - 液态玻璃胶囊 */
+  .dock-wrap {
+    position:fixed; left:0; right:0; bottom:0; z-index:999;
+    padding: 0 24px calc(env(safe-area-inset-bottom) + 14px);
+    pointer-events:none; display:flex; justify-content:center;
+  }
+  .dock {
+    display:flex; justify-content:space-around; align-items:center;
+    pointer-events:auto;
+    background: rgba(255,255,255,0.55);
+    border-radius: 40px;
+    backdrop-filter: blur(60px) saturate(200%);
+    -webkit-backdrop-filter: blur(60px) saturate(200%);
+    box-shadow: 0 24px 60px rgba(45,70,110,0.16), inset 0 2px 0 rgba(255,255,255,0.95);
+    padding: 8px 10px;
+    border: 1px solid transparent; background-clip:padding-box;
+    position:relative;
+  }
+  [data-theme="dark"] .dock { background: rgba(44,48,60,0.6); box-shadow:0 24px 60px rgba(0,0,0,0.55), inset 0 2px 0 rgba(255,255,255,0.28); }
+  .dock::before {
+    content:''; position:absolute; inset:-1px; border-radius:inherit; padding:1px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), transparent 40%, transparent 60%, rgba(255,255,255,0.45));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events:none;
+  }
+  [data-theme="dark"] .dock::before { background: linear-gradient(135deg, rgba(255,255,255,0.35), transparent 40%, transparent 60%, rgba(255,255,255,0.15)); }
+  .dock-item {
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:10px 34px; border-radius:999px; cursor:pointer;
+    transition: all .3s cubic-bezier(.16,1,.3,1); user-select:none;
+  }
+  .dock-item.active { background: rgba(255,255,255,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9); }
+  [data-theme="dark"] .dock-item.active { background: rgba(255,255,255,0.12); }
+  .dock-icon { font-size:26px; line-height:1; color:#1c1c1e; transition: all .3s; }
+  .dock-item.active .dock-icon { color:#007aff; transform: scale(1.08); }
+  [data-theme="dark"] .dock-icon { color:#d5d7dd; }
+  [data-theme="dark"] .dock-item.active .dock-icon { color:#0a84ff; }
+  .dock-text { font-size:10px; color:#1c1c1e; }
+  .dock-item.active .dock-text { color:#007aff; font-weight:600; }
+  [data-theme="dark"] .dock-text { color:#d5d7dd; }
+  [data-theme="dark"] .dock-item.active .dock-text { color:#0a84ff; }
+
+  /* 模态（选学校/编辑弹窗） */
+  .modal-mask {
+    position:fixed; inset:0; background:rgba(0,0,0,0.35);
+    backdrop-filter: blur(10px); z-index:1000;
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition: opacity .3s;
+  }
+  .modal-mask.open { opacity:1; pointer-events:auto; }
+  .modal-sheet {
+    width:100%; max-width:560px; background:rgba(248,249,251,0.9);
+    backdrop-filter: blur(60px); border-radius: 28px 28px 0 0;
+    padding: 20px 20px calc(env(safe-area-inset-bottom) + 20px);
+    transform: translateY(100%); transition: transform .4s cubic-bezier(.16,1,.3,1);
+    max-height: 75dvh; overflow-y:auto;
+  }
+  .modal-mask.open .modal-sheet { transform: translateY(0); }
+  [data-theme="dark"] .modal-sheet { background: rgba(30,32,38,0.9); }
+  .sheet-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .sheet-title { font-size:18px; font-weight:600; }
+  .sheet-close { font-size:22px; color:var(--text-dim); cursor:pointer; padding:4px 10px; }
+  .search-box {
+    display:flex; align-items:center; gap:10px;
+    background: var(--glass); border-radius:999px; padding:12px 16px; margin-bottom:14px;
+    border:1px solid var(--glass-border); backdrop-filter: blur(30px);
+  }
+  .search-box input { flex:1; border:none; outline:none; background:transparent; font-size:15px; color:var(--text); }
+  .school-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 6px; border-bottom:1px solid var(--hairline); cursor:pointer;
+  }
+  .school-row:last-child { border-bottom:none; }
+  .school-name-r { font-size:15px; font-weight:500; }
+  .school-meta { font-size:11px; color:var(--text-dim); margin-top:2px; }
+  .school-check { width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .sheet-btn { margin-top:16px; }
+  .custom-btn { margin-top:12px; }
+
+  /* 入场动画 */
+  @keyframes fadeUp { from {opacity:0; transform:translateY(30px)} to {opacity:1; transform:translateY(0)} }
+  .fade-up { animation: fadeUp .7s cubic-bezier(.16,1,.3,1) both; }
+  .f-1 { animation-delay:.05s } .f-2 { animation-delay:.15s } .f-3 { animation-delay:.25s } .f-4 { animation-delay:.35s }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="wrap">
+
+  <!-- 椭圆导航 -->
+  <div class="nav fade-up">
+    <div class="nav-side"></div>
+    <div class="nav-title" id="navTitle">开学行李清单</div>
+    <div class="nav-side right">
+      <div class="nav-btn" id="themeBtn" onclick="toggleTheme()">🌙</div>
+    </div>
+  </div>
+
+  <!-- 主页 -->
+  <div id="page-home">
+    <div class="header fade-up f-1">
+      <div class="brand">ZANE · COUNTDOWN</div>
+      <div class="today" id="todayText"></div>
+    </div>
+    <div class="countdown fade-up f-1">
+      <div class="cd-label">距开学还有</div>
+      <div class="cd-number"><span class="cd-days" id="days">0</span><span class="cd-unit">天</span></div>
+      <div class="cd-meta">
+        <span class="school-name" id="schoolName">浙江科技大学</span>
+        <span id="schoolCampus">· 安吉校区</span>
+        <span class="cd-change" onclick="openSchoolModal()">更换 ▸</span>
+      </div>
+      <div class="cd-info" id="cdInfo">开学：2026-09-06</div>
+    </div>
+    <div class="glass sheen fade-up f-2">
+      <div class="card-head"><span class="tag">选择学校</span></div>
+      <div class="picker-row" onclick="openDatePicker()">
+        <span class="picker-label">开学日期</span>
+        <span class="picker-value" id="dateValue">2026-09-06</span>
+        <span class="picker-arrow">▸</span>
+      </div>
+      <div class="hint-text">开学日期可手动调整，以录取通知书为准</div>
+      <button class="btn-ghost" onclick="openSchoolModal()">换学校 / 搜索</button>
+    </div>
+    <div class="glass sheen fade-up f-3">
+      <div class="card-head"><span class="tag">行李准备进度</span><span class="go-link" onclick="showTab(1)">去整理 ▸</span></div>
+      <div class="progress-row">
+        <span class="progress-num" id="doneCount">0</span>
+        <span class="progress-total" id="totalCount">/ 38 已准备</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-tip" id="progressTip">还差 38 件，时间够</div>
+    </div>
+  </div>
+
+  <!-- 清单页 -->
+  <div id="page-list" style="display:none">
+    <div class="header fade-up f-1">
+      <div class="brand">行李清单</div>
+      <div class="today" id="listPct"></div>
+    </div>
+    <div id="groups"></div>
+    <div class="add-group fade-up" onclick="addGroup()"><span class="add-icon">＋</span>添加分组</div>
+    <div class="footer-tip">点击勾选 · 长按删除 · 可自由编辑</div>
+  </div>
+
+</div>
+
+<!-- 底部 Dock -->
+<div class="dock-wrap">
+  <div class="dock">
+    <div class="dock-item active" id="tab0" onclick="showTab(0)"><span class="dock-icon">◷</span><span class="dock-text">倒计时</span></div>
+    <div class="dock-item" id="tab1" onclick="showTab(1)"><span class="dock-icon">☰</span><span class="dock-text">清单</span></div>
+  </div>
+</div>
+
+<!-- 选学校模态 -->
+<div class="modal-mask" id="schoolModal" onclick="if(event.target===this)closeSchoolModal()">
+  <div class="modal-sheet">
+    <div class="sheet-head"><span class="sheet-title">选择学校</span><span class="sheet-close" onclick="closeSchoolModal()">✕</span></div>
+    <div class="search-box">
+      <span>⌕</span>
+      <input id="schoolSearch" placeholder="搜索学校名称" oninput="filterSchools(this.value)">
+    </div>
+    <div id="schoolList"></div>
+    <button class="btn-ghost custom-btn" onclick="addCustomSchool()">＋ 添加自定义学校</button>
+  </div>
+</div>
+
+<script>
+/* ========== 数据 ========== */
+const SCHOOLS = [
+  {name:'浙江科技大学', date:'2026-09-06', campus:'安吉校区'},
+  {name:'浙江大学', date:'2026-09-06'},
+  {name:'浙江工业大学', date:'2026-09-06'},
+  {name:'杭州电子科技大学', date:'2026-09-06'},
+  {name:'浙江理工大学', date:'2026-09-06'},
+  {name:'浙江工商大学', date:'2026-09-06'},
+  {name:'宁波大学', date:'2026-09-06'},
+  {name:'温州大学', date:'2026-09-06'},
+  {name:'浙江师范大学', date:'2026-09-06'},
+  {name:'北京大学', date:'2026-09-01'},
+  {name:'清华大学', date:'2026-09-01'},
+  {name:'复旦大学', date:'2026-09-01'},
+  {name:'上海交通大学', date:'2026-09-01'},
+  {name:'武汉大学', date:'2026-09-06'},
+  {name:'华中科技大学', date:'2026-09-06'},
+  {name:'中山大学', date:'2026-09-01'},
+  {name:'四川大学', date:'2026-09-06'},
+  {name:'厦门大学', date:'2026-09-06'},
+  {name:'山东大学', date:'2026-09-06'},
+  {name:'吉林大学', date:'2026-09-06'}
+];
+
+const DEFAULT_ITEMS = [
+  {g:'证件材料', items:[
+    ['录取通知书','原件 + 复印件'],['身份证','原件 + 复印件 4 份'],['高考准考证','报到备用'],
+    ['证件照','一寸 8-15 张 + 二寸 4 张 + 电子版'],['团员档案','密封完整，不拆封'],['户口本','本人页复印件（备选）']]},
+  {g:'床上用品', items:[
+    ['记忆棉床垫','90×190cm，厚 5-6cm'],['三件套','纯棉，两套换洗'],['被子 + 枕头','四季被，防螨'],
+    ['遮光床帘','五面强遮光 + 支架'],['枕头套 + 枕巾','换洗备用']]},
+  {g:'生活电器', items:[
+    ['插线板','公牛，3C 认证，总控'],['护眼台灯','充电夹式，熄灯可用'],['路由器','安吉允许装，和室友分摊'],
+    ['吹风机','≤1200W，别超限电'],['U盘','64G，存课件和作业']]},
+  {g:'日常用品', items:[
+    ['洗漱全套','牙具、毛巾、洗护'],['拖鞋两双','浴室 + 室内分开'],['衣架 10-15 个','加脏衣篮、收纳盒'],
+    ['洗衣液 + 盆','宿舍洗衣用'],['水杯','教室 + 宿舍各一个'],['雨伞','安吉多雨'],['小锁','柜子锁，贵重物品'],
+    ['医药包','感冒药、肠胃药、退烧药、创可贴、碘伏棉签']]},
+  {g:'衣物', items:[
+    ['夏装','短袖短裤，够两周换'],['秋装','安吉山里早晚凉'],['薄外套','处暑后降温用'],
+    ['运动鞋','军训 + 日常'],['内衣袜子','多备几套，单独收纳']]},
+  {g:'数码与学习', items:[
+    ['手机 + 充电器','数据线多备一根'],['充电宝','报到当天用'],['笔记本','小米 Book Pro'],
+    ['耳机','AirPods Pro 2'],['笔 + 笔记本','签字笔、2B 铅笔、草稿纸'],['文件夹','装证件和材料']]},
+  {g:'军训', items:[
+    ['防晒霜','军训暴晒必备'],['清凉贴','站军姿降温'],['鞋垫','军训鞋硬，加软垫']]}
+];
+
+/* ========== 存储 ========== */
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch(e){ return d; } },
+  set(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+};
+
+/* ========== 主题 ========== */
+function toggleTheme() {
+  const cur = document.body.dataset.theme;
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.body.dataset.theme = next;
+  document.getElementById('themeBtn').textContent = next === 'light' ? '🌙' : '☀️';
+  store.set('theme', next);
+}
+
+/* ========== 状态 ========== */
+let school = store.get('school', {name:'浙江科技大学', date:'2026-09-06', campus:'安吉校区'});
+let items = store.get('items', null) || JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+let activeTab = 0;
+
+/* ========== 倒计时 ========== */
+function calcDays(dateStr) {
+  if (!dateStr) return 0;
+  const p = dateStr.split('-');
+  const target = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+  const diff = target - new Date();
+  return Number.isFinite(diff) ? Math.max(0, Math.ceil(diff/86400000)) : 0;
+}
+
+/* ========== 渲染 ========== */
+function renderAll() {
+  // 日期
+  const now = new Date();
+  document.getElementById('todayText').textContent = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
+  // 倒计时
+  const days = calcDays(school.date);
+  document.getElementById('days').textContent = days;
+  document.getElementById('schoolName').textContent = school.name;
+  document.getElementById('schoolCampus').textContent = school.campus ? '· '+school.campus : '';
+  document.getElementById('cdInfo').textContent = '开学：' + (school.date || '未设置');
+  document.getElementById('dateValue').textContent = school.date || '选择日期';
+  // 进度
+  let done = 0, total = 0;
+  items.forEach(g => g.items.forEach(it => { total++; if (it.done) done++; }));
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('doneCount').textContent = done;
+  document.getElementById('totalCount').textContent = '/ ' + total + ' 已准备';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressTip').textContent = done === total ? '全齐了，就等出发 🎒' : '还差 ' + (total-done) + ' 件，时间够';
+  document.getElementById('listPct').textContent = done + ' / ' + total + ' 已准备';
+  // 清单
+  renderGroups();
+}
+
+function renderGroups() {
+  const el = document.getElementById('groups');
+  el.innerHTML = '';
+  items.forEach((g, gi) => {
+    const div = document.createElement('div');
+    div.className = 'glass sheen';
+    let html = '<div class="group-head"><span class="group-title">'+g.g+'</span>' +
+      '<div class="group-actions"><span class="act" onclick="renameGroup('+gi+')">重命名</span>' +
+      '<span class="act danger" onclick="deleteGroup('+gi+')">删除</span></div></div>';
+    g.items.forEach((it, ii) => {
+      html += '<div class="item" onclick="toggleItem('+gi+','+ii+')" oncontextmenu="event.preventDefault();deleteItem('+gi+','+ii+')">' +
+        '<span class="box'+(it.done?' done':'')+'">'+(it.done?'<span class="tick">✓</span>':'')+'</span>' +
+        '<span class="item-body"><span class="label'+(it.done?' done':'')+'">'+it[0]+'</span>' +
+        (it[1] ? '<span class="hint">'+it[1]+'</span>' : '') + '</span></div>';
+    });
+    html += '<div class="add-item" onclick="addItem('+gi+')"><span class="add-icon">＋</span>添加物品</div>';
+    div.innerHTML = html;
+    el.appendChild(div);
+  });
+}
+
+/* ========== 清单操作 ========== */
+function toggleItem(gi, ii) {
+  items[gi].items[ii].done = !items[gi].items[ii].done;
+  store.set('items', items); renderAll();
+}
+function addItem(gi) {
+  const name = prompt('物品名称：');
+  if (name && name.trim()) {
+    items[gi].items.push([name.trim(), '']);
+    store.set('items', items); renderAll();
+  }
+}
+function deleteItem(gi, ii) {
+  if (confirm('删除「'+items[gi].items[ii][0]+'」？')) {
+    items[gi].items.splice(ii, 1);
+    store.set('items', items); renderAll();
+  }
+}
+function addGroup() {
+  const name = prompt('分组名称：');
+  if (name && name.trim()) {
+    items.push({g: name.trim(), items: []});
+    store.set('items', items); renderAll();
+  }
+}
+function renameGroup(gi) {
+  const name = prompt('重命名分组：', items[gi].g);
+  if (name && name.trim()) {
+    items[gi].g = name.trim();
+    store.set('items', items); renderAll();
+  }
+}
+function deleteGroup(gi) {
+  if (confirm('删除「'+items[gi].g+'」及所有物品？')) {
+    items.splice(gi, 1);
+    store.set('items', items); renderAll();
+  }
+}
+
+/* ========== 选学校 ========== */
+let customSchools = store.get('customSchools', []);
+function openSchoolModal() {
+  document.getElementById('schoolModal').classList.add('open');
+  document.getElementById('schoolSearch').value = '';
+  renderSchoolList(SCHOOLS);
+}
+function closeSchoolModal() {
+  document.getElementById('schoolModal').classList.remove('open');
+}
+function filterSchools(kw) {
+  const k = (kw||'').trim();
+  const list = k ? SCHOOLS.filter(s => s.name.includes(k)) : SCHOOLS;
+  renderSchoolList(list);
+}
+function renderSchoolList(list) {
+  const el = document.getElementById('schoolList');
+  el.innerHTML = '';
+  const all = list.concat(customSchools.map(c => ({name:c.name, date:c.date, campus:'', custom:true})));
+  all.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'school-row';
+    row.innerHTML = '<div><div class="school-name-r">'+s.name+'</div>' +
+      (s.campus ? '<div class="school-meta">'+s.campus+' · '+s.date+' 开学</div>' : '<div class="school-meta">'+s.date+' 开学</div>') + '</div>' +
+      (s.name === school.name ? '<span class="school-check">✓</span>' : '');
+    row.onclick = () => {
+      school = {name: s.name, date: s.date, campus: s.campus || ''};
+      store.set('school', school);
+      closeSchoolModal(); renderAll();
+    };
+    el.appendChild(row);
+  });
+}
+function addCustomSchool() {
+  const name = prompt('学校名称：');
+  if (!name || !name.trim()) return;
+  const date = prompt('开学日期（如 2026-09-06）：', '2026-09-06');
+  const d = date && /^\d{4}-\d{2}-\d{2}$/.test(date.trim()) ? date.trim() : '2026-09-06';
+  customSchools.push({name:name.trim(), date:d});
+  store.set('customSchools', customSchools);
+  renderSchoolList(SCHOOLS);
+}
+function openDatePicker() {
+  const d = prompt('开学日期（如 2026-09-06）：', school.date || '2026-09-06');
+  if (d && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())) {
+    school.date = d.trim();
+    store.set('school', school); renderAll();
+  }
+}
+
+/* ========== Tab ========== */
+function showTab(i) {
+  activeTab = i;
+  document.getElementById('page-home').style.display = i === 0 ? '' : 'none';
+  document.getElementById('page-list').style.display = i === 1 ? '' : 'none';
+  document.getElementById('tab0').className = 'dock-item' + (i===0?' active':'');
+  document.getElementById('tab1').className = 'dock-item' + (i===1?' active':'');
+  document.getElementById('navTitle').textContent = i === 0 ? '开学行李清单' : '行李清单';
+  if (i === 1) renderAll();
+}
+
+/* ========== 初始化 ========== */
+(function init() {
+  const t = store.get('theme', 'light');
+  document.body.dataset.theme = t;
+  document.getElementById('themeBtn').textContent = t === 'light' ? '🌙' : '☀️';
+  renderAll();
+})();
+</script>
+</body>
+</html>
