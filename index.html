@@ -107,6 +107,11 @@
   .header { display:flex; justify-content:space-between; align-items:center; padding: 24px 4px 18px; }
   .brand { font-size:12px; letter-spacing:4px; color:var(--accent); font-weight:600; text-transform:uppercase; }
   .today { font-size:12px; color:var(--text-dim); }
+  .author-chip {
+    font-size: 10px; color: var(--accent); font-weight: 600;
+    background: var(--accent-soft); padding: 3px 10px; border-radius: 999px;
+    letter-spacing: 1px; margin-right: 4px;
+  }
 
   /* 倒计时 */
   .countdown { margin-bottom:28px; }
@@ -257,6 +262,33 @@
   }
   .add-icon { font-size:18px; font-weight:600; }
   .footer-tip { text-align:center; font-size:11px; color:var(--text-faint); margin-top:24px; }
+
+  /* 关于页 */
+  .about-hero { text-align:center; padding: 36px 22px; }
+  .about-logo { font-size: 52px; margin-bottom: 12px; }
+  .about-name { font-size: 24px; font-weight: 700; letter-spacing: 2px; }
+  .about-ver { font-size: 12px; color: var(--text-dim); margin-top: 8px; letter-spacing: 1px; }
+  .about-desc { font-size: 14px; line-height: 1.8; color: var(--text-dim); }
+  .donate-desc { margin-bottom: 16px; }
+  .about-author { display: flex; align-items: center; gap: 14px; }
+  .about-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, #4a90d9, #6aa8e8);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 24px; font-weight: 700; flex-shrink: 0;
+    box-shadow: 0 8px 20px rgba(74,144,217,0.3);
+  }
+  .about-author-info { display: flex; flex-direction: column; gap: 3px; }
+  .about-author-name { font-size: 16px; font-weight: 600; }
+  .about-author-desc { font-size: 12px; color: var(--text-dim); }
+  .donate-qr { display: flex; justify-content: center; margin: 16px 0 12px; }
+  .donate-img {
+    width: 180px; height: 180px; border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+  }
+  .donate-tip { text-align: center; font-size: 12px; color: var(--text-faint); }
+  .about-footer { text-align: center; font-size: 11px; color: var(--text-faint); margin-top: 28px; letter-spacing: 1px; }
 
   /* 底部 Dock - 液态玻璃胶囊 */
   .dock-wrap {
@@ -527,7 +559,7 @@
   <div id="page-home">
     <div class="header fade-up f-1">
       <div class="brand">ZANE · COUNTDOWN</div>
-      <div class="today" id="todayText"></div>
+      <div class="today"><span class="author-chip">QWYU_Zane</span> <span id="todayText"></span></div>
     </div>
     <div class="countdown fade-up f-1">
       <div class="cd-label">距开学还有</div>
@@ -574,13 +606,57 @@
     <div class="footer-tip">点击勾选 · 长按删除 · 可自由编辑</div>
   </div>
 
+  <!-- 关于页 -->
+  <div id="page-about" style="display:none">
+    <div class="header fade-up f-1">
+      <div class="brand">关于</div>
+      <div class="today">ABOUT</div>
+    </div>
+
+    <div class="glass sheen fade-up f-1 about-hero">
+      <div class="about-logo">🎒</div>
+      <div class="about-name">开学行李清单</div>
+      <div class="about-ver">版本 v1.7.0</div>
+    </div>
+
+    <div class="glass fade-up f-2">
+      <div class="card-head"><span class="tag">工具说明</span></div>
+      <div class="about-desc">
+        一款帮助准大学生准备开学行李的小工具。选择你的学校，自动生成倒计时和行李清单，随时勾选准备进度，轻松出发。
+      </div>
+    </div>
+
+    <div class="glass fade-up f-3">
+      <div class="card-head"><span class="tag">关于作者</span></div>
+      <div class="about-author">
+        <div class="about-avatar">Z</div>
+        <div class="about-author-info">
+          <div class="about-author-name">QWYU_Zane</div>
+          <div class="about-author-desc">独立开发者 · 设计并开发了这款小工具</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass fade-up f-4">
+      <div class="card-head"><span class="tag">支持作者</span></div>
+      <div class="about-desc donate-desc">如果这款工具帮到了你，可以请作者喝杯奶茶 🧋</div>
+      <div class="donate-qr">
+        <img src="donate.jpg" alt="打赏二维码" class="donate-img">
+      </div>
+      <div class="donate-tip">微信扫码 · 打赏随意</div>
+    </div>
+
+    <div class="about-footer">© 2026 QWYU_Zane · Made with ❤</div>
+  </div>
+
 </div>
 
 <!-- 底部 Dock -->
 <div class="dock-wrap">
   <div class="dock">
-    <div class="dock-item active" id="tab0" onclick="showTab(0)"><span class="dock-icon">◷</span><span class="dock-text">倒计时</span></div>
+    <div class="dock-item" id="tab0" onclick="showTab(0)"><span class="dock-icon">◷</span><span class="dock-text">倒计时</span></div>
     <div class="dock-item" id="tab1" onclick="showTab(1)"><span class="dock-icon">☰</span><span class="dock-text">清单</span></div>
+    <div class="dock-item" id="tab2" onclick="showTab(2)"><span class="dock-icon">ⓘ</span><span class="dock-text">关于</span></div>
   </div>
 </div>
 
@@ -1044,9 +1120,11 @@ function showTab(i) {
   activeTab = i;
   document.getElementById('page-home').style.display = i === 0 ? '' : 'none';
   document.getElementById('page-list').style.display = i === 1 ? '' : 'none';
+  document.getElementById('page-about').style.display = i === 2 ? '' : 'none';
   document.getElementById('tab0').className = 'dock-item' + (i===0?' active':'');
   document.getElementById('tab1').className = 'dock-item' + (i===1?' active':'');
-  document.getElementById('navTitle').textContent = i === 0 ? '开学行李清单' : '行李清单';
+  document.getElementById('tab2').className = 'dock-item' + (i===2?' active':'');
+  document.getElementById('navTitle').textContent = i === 0 ? '开学行李清单' : (i === 1 ? '行李清单' : '关于');
   if (i === 1) renderAll();
 }
 
