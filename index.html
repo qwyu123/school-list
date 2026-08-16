@@ -645,26 +645,26 @@ const SCHOOLS = [
 
 const DEFAULT_ITEMS = [
   {g:'证件材料', items:[
-    ['录取通知书','原件 + 复印件'],['身份证','原件 + 复印件 4 份'],['高考准考证','报到备用'],
-    ['证件照','一寸 8-15 张 + 二寸 4 张 + 电子版'],['团员档案','密封完整，不拆封'],['户口本','本人页复印件（备选）']]},
+    {name:'录取通知书', hint:'原件 + 复印件', done:false},{name:'身份证', hint:'原件 + 复印件 4 份', done:false},{name:'高考准考证', hint:'报到备用', done:false},
+    {name:'证件照', hint:'一寸 8-15 张 + 二寸 4 张 + 电子版', done:false},{name:'团员档案', hint:'密封完整，不拆封', done:false},{name:'户口本', hint:'本人页复印件（备选）', done:false}]},
   {g:'床上用品', items:[
-    ['记忆棉床垫','90×190cm，厚 5-6cm'],['三件套','纯棉，两套换洗'],['被子 + 枕头','四季被，防螨'],
-    ['遮光床帘','五面强遮光 + 支架'],['枕头套 + 枕巾','换洗备用']]},
+    {name:'记忆棉床垫', hint:'90×190cm，厚 5-6cm', done:false},{name:'三件套', hint:'纯棉，两套换洗', done:false},{name:'被子 + 枕头', hint:'四季被，防螨', done:false},
+    {name:'遮光床帘', hint:'五面强遮光 + 支架', done:false},{name:'枕头套 + 枕巾', hint:'换洗备用', done:false}]},
   {g:'生活电器', items:[
-    ['插线板','公牛，3C 认证，总控'],['护眼台灯','充电夹式，熄灯可用'],['路由器','安吉允许装，和室友分摊'],
-    ['吹风机','≤1200W，别超限电'],['U盘','64G，存课件和作业']]},
+    {name:'插线板', hint:'公牛，3C 认证，总控', done:false},{name:'护眼台灯', hint:'充电夹式，熄灯可用', done:false},{name:'路由器', hint:'安吉允许装，和室友分摊', done:false},
+    {name:'吹风机', hint:'≤1200W，别超限电', done:false},{name:'U盘', hint:'64G，存课件和作业', done:false}]},
   {g:'日常用品', items:[
-    ['洗漱全套','牙具、毛巾、洗护'],['拖鞋两双','浴室 + 室内分开'],['衣架 10-15 个','加脏衣篮、收纳盒'],
-    ['洗衣液 + 盆','宿舍洗衣用'],['水杯','教室 + 宿舍各一个'],['雨伞','安吉多雨'],['小锁','柜子锁，贵重物品'],
-    ['医药包','感冒药、肠胃药、退烧药、创可贴、碘伏棉签']]},
+    {name:'洗漱全套', hint:'牙具、毛巾、洗护', done:false},{name:'拖鞋两双', hint:'浴室 + 室内分开', done:false},{name:'衣架 10-15 个', hint:'加脏衣篮、收纳盒', done:false},
+    {name:'洗衣液 + 盆', hint:'宿舍洗衣用', done:false},{name:'水杯', hint:'教室 + 宿舍各一个', done:false},{name:'雨伞', hint:'安吉多雨', done:false},{name:'小锁', hint:'柜子锁，贵重物品', done:false},
+    {name:'医药包', hint:'感冒药、肠胃药、退烧药、创可贴、碘伏棉签', done:false}]},
   {g:'衣物', items:[
-    ['夏装','短袖短裤，够两周换'],['秋装','安吉山里早晚凉'],['薄外套','处暑后降温用'],
-    ['运动鞋','军训 + 日常'],['内衣袜子','多备几套，单独收纳']]},
+    {name:'夏装', hint:'短袖短裤，够两周换', done:false},{name:'秋装', hint:'安吉山里早晚凉', done:false},{name:'薄外套', hint:'处暑后降温用', done:false},
+    {name:'运动鞋', hint:'军训 + 日常', done:false},{name:'内衣袜子', hint:'多备几套，单独收纳', done:false}]},
   {g:'数码与学习', items:[
-    ['手机 + 充电器','数据线多备一根'],['充电宝','报到当天用'],['笔记本','小米 Book Pro'],
-    ['耳机','AirPods Pro 2'],['笔 + 笔记本','签字笔、2B 铅笔、草稿纸'],['文件夹','装证件和材料']]},
+    {name:'手机 + 充电器', hint:'数据线多备一根', done:false},{name:'充电宝', hint:'报到当天用', done:false},{name:'笔记本', hint:'小米 Book Pro', done:false},
+    {name:'耳机', hint:'AirPods Pro 2', done:false},{name:'笔 + 笔记本', hint:'签字笔、2B 铅笔、草稿纸', done:false},{name:'文件夹', hint:'装证件和材料', done:false}]},
   {g:'军训', items:[
-    ['防晒霜','军训暴晒必备'],['清凉贴','站军姿降温'],['鞋垫','军训鞋硬，加软垫']]}
+    {name:'防晒霜', hint:'军训暴晒必备', done:false},{name:'清凉贴', hint:'站军姿降温', done:false},{name:'鞋垫', hint:'军训鞋硬，加软垫', done:false}]}
 ];
 
 /* ========== 存储 ========== */
@@ -686,6 +686,24 @@ function toggleTheme() {
 let school = store.get('school', {name:'浙江科技大学', date:'2026-09-06', campus:'安吉校区'});
 let items = store.get('items', null) || JSON.parse(JSON.stringify(DEFAULT_ITEMS));
 let activeTab = 0;
+
+// 数据格式迁移：兼容旧版数组格式 [name,hint] → 统一对象格式 {name,hint,done}
+(function migrateItems() {
+  let changed = false;
+  items.forEach(g => {
+    if (!g.items) return;
+    g.items = g.items.map(it => {
+      if (it && typeof it === 'object' && 'name' in it) return it; // 已是对象格式
+      if (Array.isArray(it)) {
+        changed = true;
+        const done = it.length > 2 ? !!it[2] : false;
+        return { name: it[0] || '', hint: it[1] || '', done: done };
+      }
+      return it;
+    });
+  });
+  if (changed) store.set('items', items);
+})();
 
 /* ========== 倒计时 ========== */
 function calcDays(dateStr) {
@@ -734,8 +752,8 @@ function renderGroups() {
       html += '<div class="item" onclick="toggleItem('+gi+','+ii+')">' +
         '<span class="box'+(it.done?' done':'')+'">'+(it.done?'<span class="tick">✓</span>':'')+'</span>' +
         '<span class="item-body">' +
-          '<span class="label'+(it.done?' done':'')+'">'+it[0]+'</span>' +
-          (it[1] ? '<span class="hint" onclick="event.stopPropagation();editHint('+gi+','+ii+')">'+it[1]+' ✎</span>' : '<span class="hint hint-empty" onclick="event.stopPropagation();editHint('+gi+','+ii+')">添加备注 ✎</span>') +
+          '<span class="label'+(it.done?' done':'')+'">'+it.name+'</span>' +
+          (it.hint ? '<span class="hint" onclick="event.stopPropagation();editHint('+gi+','+ii+')">'+it.hint+' ✎</span>' : '<span class="hint hint-empty" onclick="event.stopPropagation();editHint('+gi+','+ii+')">添加备注 ✎</span>') +
         '</span>' +
         '<span class="item-del" onclick="event.stopPropagation();deleteItem('+gi+','+ii+')">✕</span></div>';
     });
@@ -753,21 +771,21 @@ function toggleItem(gi, ii) {
 function addItem(gi) {
   const name = prompt('物品名称：');
   if (name && name.trim()) {
-    items[gi].items.push([name.trim(), '']);
+    items[gi].items.push({name: name.trim(), hint: '', done: false});
     store.set('items', items); renderAll();
   }
 }
 function deleteItem(gi, ii) {
-  if (confirm('删除「'+items[gi].items[ii][0]+'」？')) {
+  if (confirm('删除「'+items[gi].items[ii].name+'」？')) {
     items[gi].items.splice(ii, 1);
     store.set('items', items); renderAll();
   }
 }
 function editHint(gi, ii) {
-  const cur = items[gi].items[ii][1] || '';
+  const cur = items[gi].items[ii].hint || '';
   const h = prompt('编辑备注（可留空）：', cur);
   if (h !== null) {
-    items[gi].items[ii][1] = h.trim();
+    items[gi].items[ii].hint = h.trim();
     store.set('items', items); renderAll();
   }
 }
