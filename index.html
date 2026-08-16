@@ -167,6 +167,25 @@
     font-size:15px; padding:12px 0; cursor:pointer;
     backdrop-filter: blur(40px); box-shadow: inset 0 1px 0 var(--glass-hi);
   }
+  /* 学校双按钮：添加学校高优先级 */
+  .school-btns { display:flex; gap:10px; margin-top:16px; }
+  .school-btn-main {
+    flex:1; margin-top:0;
+    background: var(--glass); color:var(--accent);
+    border:1px solid var(--glass-border); border-radius:999px;
+    font-size:14px; padding:12px 0; cursor:pointer;
+    backdrop-filter: blur(40px); box-shadow: inset 0 1px 0 var(--glass-hi);
+  }
+  .btn-primary-add {
+    flex:1; display:block;
+    background: linear-gradient(135deg, var(--accent), var(--accent-bright));
+    color:#fff; border:none; border-radius:999px;
+    font-size:14px; font-weight:600; padding:12px 0; cursor:pointer;
+    box-shadow: 0 8px 24px rgba(74,144,217,0.3), inset 0 2px 0 rgba(255,255,255,0.35);
+    transition: transform .2s, opacity .2s;
+  }
+  .btn-primary-add:active { transform: scale(.96); opacity:.9; }
+  .sheet-add-btn { margin-bottom:14px; }
   .btn-primary {
     display:block; width:100%;
     background: linear-gradient(135deg, var(--accent), var(--accent-bright));
@@ -471,7 +490,10 @@
         <span class="picker-arrow">▸</span>
       </div>
       <div class="hint-text">开学日期可手动调整，以录取通知书为准</div>
-      <button class="btn-ghost" onclick="openSchoolModal()">换学校 / 搜索</button>
+      <div class="school-btns">
+        <button class="btn-ghost school-btn-main" onclick="openSchoolModal()">换学校 / 搜索</button>
+        <button class="btn-primary-add" onclick="addCustomSchool()">＋ 添加学校</button>
+      </div>
     </div>
     <div class="glass sheen fade-up f-3">
       <div class="card-head"><span class="tag">行李准备进度</span><span class="go-link" onclick="showTab(1)">去整理 ▸</span></div>
@@ -513,8 +535,8 @@
     <span>⌕</span>
     <input id="schoolSearch" placeholder="搜索学校名称" oninput="filterSchools(this.value)">
   </div>
+  <button class="btn-primary-add sheet-add-btn" onclick="addCustomSchool()">＋ 添加自定义学校</button>
   <div id="schoolList"></div>
-  <button class="btn-ghost custom-btn" onclick="addCustomSchool()">＋ 添加自定义学校</button>
 </div>
 </div>
 <!-- 首次访问引导 -->
@@ -733,9 +755,15 @@ function addCustomSchool() {
   if (!name || !name.trim()) return;
   const date = prompt('开学日期（如 2026-09-06）：', '2026-09-06');
   const d = date && /^\d{4}-\d{2}-\d{2}$/.test(date.trim()) ? date.trim() : '2026-09-06';
-  customSchools.push({name:name.trim(), date:d});
+  const newSchool = {name:name.trim(), date:d, campus:''};
+  customSchools.push(newSchool);
   store.set('customSchools', customSchools);
-  renderSchoolList(SCHOOLS);
+  // 添加后自动选中
+  school = {name:newSchool.name, date:newSchool.date, campus:''};
+  store.set('school', school);
+  closeSchoolModal();
+  renderAll();
+  alert('已添加并选择「' + newSchool.name + '」');
 }
 function openDatePicker() {
   const d = prompt('开学日期（如 2026-09-06）：', school.date || '2026-09-06');
