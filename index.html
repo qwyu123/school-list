@@ -435,6 +435,7 @@
     background: var(--glass); cursor: pointer; margin-bottom: 14px;
   }
   .guide-date-big { font-size: 20px; font-weight: 700; }
+  .guide-date-tip { font-size: 12px; color: var(--text-faint); text-align: center; margin-bottom: 16px; }
   .guide-quick { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
   .guide-chip {
     padding: 10px 18px; border-radius: 999px; background: var(--glass);
@@ -766,11 +767,25 @@ function addCustomSchool() {
   alert('已添加并选择「' + newSchool.name + '」');
 }
 function openDatePicker() {
-  const d = prompt('开学日期（如 2026-09-06）：', school.date || '2026-09-06');
-  if (d && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())) {
-    school.date = d.trim();
-    store.set('school', school); renderAll();
-  }
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.value = school.date || '2026-09-06';
+  input.min = '2020-01-01';
+  input.max = '2035-12-31';
+  input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
+  document.body.appendChild(input);
+  input.addEventListener('change', () => {
+    if (input.value) {
+      school.date = input.value;
+      store.set('school', school);
+      renderAll();
+    }
+    document.body.removeChild(input);
+  });
+  input.addEventListener('blur', () => {
+    setTimeout(() => { if (document.body.contains(input)) document.body.removeChild(input); }, 500);
+  });
+  input.showPicker ? input.showPicker() : input.click();
 }
 
 /* ========== Tab ========== */
@@ -857,18 +872,10 @@ function guideTime() {
     '<div style="margin-bottom:18px;color:var(--text);font-size:15px;font-weight:500">已选择：'+school.name+(school.campus?' · '+school.campus:'')+'</div>' +
     '<div class="guide-date-row" onclick="guideDatePick()">' +
       '<span style="color:var(--text-dim);font-size:14px">开学日期</span>' +
-      '<span class="guide-date-big" id="guideDateVal">'+(school.date||'选择日期')+'</span>' +
+      '<span class="guide-date-big" id="guideDateVal">'+(school.date||'点击选择')+'</span>' +
     '</div>' +
-    '<div class="guide-quick">' +
-      '<div class="guide-chip" data-d="2026-09-03" onclick="guideQuick(this)">9月3日</div>' +
-      '<div class="guide-chip" data-d="2026-09-06" onclick="guideQuick(this)">9月6日</div>' +
-      '<div class="guide-chip" data-d="2026-09-10" onclick="guideQuick(this)">9月10日</div>' +
-    '</div>' +
+    '<div class="guide-date-tip">点击上方日期自行选择</div>' +
     '<button class="guide-btn" onclick="guideFinish()">下一步：编辑清单 →</button>';
-  const cur = school.date || '2026-09-06';
-  document.querySelectorAll('.guide-chip').forEach(c => {
-    if (c.dataset.d === cur) c.classList.add('active');
-  });
 }
 
 function guideQuick(el) {
@@ -880,13 +887,26 @@ function guideQuick(el) {
 }
 
 function guideDatePick() {
-  const d = prompt('开学日期（如 2026-09-06）：', school.date || '2026-09-06');
-  if (d && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())) {
-    school.date = d.trim();
-    store.set('school', school);
-    document.getElementById('guideDateVal').textContent = school.date;
-    document.querySelectorAll('.guide-chip').forEach(c => c.classList.remove('active'));
-  }
+  // 用原生日期选择器（手机友好）
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.value = school.date || '2026-09-06';
+  input.min = '2020-01-01';
+  input.max = '2035-12-31';
+  input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
+  document.body.appendChild(input);
+  input.addEventListener('change', () => {
+    if (input.value) {
+      school.date = input.value;
+      store.set('school', school);
+      document.getElementById('guideDateVal').textContent = school.date;
+    }
+    document.body.removeChild(input);
+  });
+  input.addEventListener('blur', () => {
+    setTimeout(() => { if (document.body.contains(input)) document.body.removeChild(input); }, 500);
+  });
+  input.showPicker ? input.showPicker() : input.click();
 }
 
 function guideNext() {
