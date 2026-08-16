@@ -186,6 +186,7 @@
   }
   .btn-primary-add:active { transform: scale(.96); opacity:.9; }
   .sheet-add-btn { margin-bottom:14px; }
+  .guide-add-btn { margin-bottom:14px; }
   .btn-primary {
     display:block; width:100%;
     background: linear-gradient(135deg, var(--accent), var(--accent-bright));
@@ -450,6 +451,61 @@
   }
   .guide-search input { flex: 1; border: none; outline: none; background: transparent; font-size: 14px; color: var(--text); }
 
+  /* ===== 滚轮日期选择器（自绘，兼容 iOS） ===== */
+  .wheel-mask {
+    position: fixed; inset: 0; z-index: 3000;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .3s;
+  }
+  .wheel-mask.open { opacity: 1; pointer-events: auto; }
+  .wheel-sheet {
+    width: 100%; max-width: 560px;
+    background: rgba(248,249,251,0.95);
+    backdrop-filter: blur(60px);
+    border-radius: 28px 28px 0 0;
+    padding: 16px 20px calc(env(safe-area-inset-bottom) + 24px);
+    transform: translateY(100%); transition: transform .4s cubic-bezier(.16,1,.3,1);
+  }
+  [data-theme="dark"] .wheel-sheet { background: rgba(30,32,38,0.95); }
+  .wheel-mask.open .wheel-sheet { transform: translateY(0); }
+  .wheel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .wheel-cancel { font-size: 15px; color: var(--text-dim); padding: 8px; cursor: pointer; }
+  .wheel-title { font-size: 15px; font-weight: 600; }
+  .wheel-ok { font-size: 15px; color: var(--accent); font-weight: 600; padding: 8px; cursor: pointer; }
+  .wheel-view {
+    display: flex; justify-content: center; align-items: center;
+    height: 220px; position: relative;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 25%, #000 75%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 25%, #000 75%, transparent 100%);
+  }
+  .wheel-col { height: 220px; overflow: hidden; position: relative; flex: 1; max-width: 120px; }
+  .wheel-items {
+    position: absolute; left: 0; right: 0; top: 0;
+    transition: transform .25s cubic-bezier(.16,1,.3,1);
+    will-change: transform;
+  }
+  .wheel-item {
+    height: 44px; line-height: 44px; text-align: center;
+    font-size: 18px; color: var(--text-dim);
+    white-space: nowrap;
+    transition: color .2s, transform .2s, opacity .2s;
+  }
+  .wheel-item.cur {
+    color: var(--text); font-weight: 700; font-size: 20px;
+  }
+  .wheel-glow {
+    position: absolute; left: 10%; right: 10%; top: 50%; height: 44px;
+    transform: translateY(-50%);
+    background: var(--accent-soft);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+  /* 触控滑动 */
+  .wheel-items.touch { transition: none; }
+
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
@@ -543,6 +599,23 @@
 <!-- 首次访问引导 -->
 <div class="guide-mask" id="guideMask">
   <div class="guide-card" id="guideCard"></div>
+</div>
+
+<!-- 滚轮日期选择器 -->
+<div class="wheel-mask" id="wheelMask" onclick="if(event.target===this)wheelClose()">
+  <div class="wheel-sheet">
+    <div class="wheel-head">
+      <span class="wheel-cancel" onclick="wheelClose()">取消</span>
+      <span class="wheel-title">选择开学日期</span>
+      <span class="wheel-ok" onclick="wheelConfirm()">确定</span>
+    </div>
+    <div class="wheel-view" id="wheelView">
+      <div class="wheel-glow"></div>
+      <div class="wheel-col" id="wheelYearCol"></div>
+      <div class="wheel-col" id="wheelMonthCol"></div>
+      <div class="wheel-col" id="wheelDayCol"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -767,25 +840,121 @@ function addCustomSchool() {
   alert('已添加并选择「' + newSchool.name + '」');
 }
 function openDatePicker() {
-  const input = document.createElement('input');
-  input.type = 'date';
-  input.value = school.date || '2026-09-06';
-  input.min = '2020-01-01';
-  input.max = '2035-12-31';
-  input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
-  document.body.appendChild(input);
-  input.addEventListener('change', () => {
-    if (input.value) {
-      school.date = input.value;
-      store.set('school', school);
-      renderAll();
-    }
-    document.body.removeChild(input);
+  openWheel(school.date || '2026-09-06', (d) => {
+    school.date = d;
+    store.set('school', school);
+    renderAll();
   });
-  input.addEventListener('blur', () => {
-    setTimeout(() => { if (document.body.contains(input)) document.body.removeChild(input); }, 500);
+}
+
+/* ========== 滚轮日期选择器 ========== */
+const ITEM_H = 44;
+let wheelCallback = null;
+let wheelDate = { y: 2026, m: 9, d: 6 };
+
+function buildWheel(col, values, curIdx) {
+  col.innerHTML = '';
+  const items = document.createElement('div');
+  items.className = 'wheel-items';
+  items.style.top = '88px'; // (220-44)/2
+  values.forEach((v, i) => {
+    const d = document.createElement('div');
+    d.className = 'wheel-item' + (i === curIdx ? ' cur' : '');
+    d.textContent = v;
+    items.appendChild(d);
   });
-  input.showPicker ? input.showPicker() : input.click();
+  col.appendChild(items);
+  // 触控滑动
+  let startY = 0, startTop = 0, dragging = false;
+  col.addEventListener('touchstart', e => {
+    dragging = true;
+    startY = e.touches[0].clientY;
+    startTop = parseInt(items.style.top, 10) || 88;
+    items.classList.add('touch');
+  }, { passive: true });
+  col.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const dy = e.touches[0].clientY - startY;
+    let top = startTop + dy;
+    const maxTop = 88;
+    const minTop = 88 - (values.length - 1) * ITEM_H;
+    top = Math.max(minTop, Math.min(maxTop, top));
+    items.style.top = top + 'px';
+    updateCur(col, items, values);
+    e.preventDefault();
+  }, { passive: false });
+  col.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    items.classList.remove('touch');
+    snap(col, items, values);
+  });
+}
+
+function snap(col, items, values) {
+  let top = parseInt(items.style.top, 10) || 88;
+  const idx = Math.round((88 - top) / ITEM_H);
+  const clamped = Math.max(0, Math.min(values.length - 1, idx));
+  items.style.top = (88 - clamped * ITEM_H) + 'px';
+  updateCur(col, items, values, clamped);
+}
+
+function updateCur(col, items, values, fixedIdx) {
+  let top = parseInt(items.style.top, 10) || 88;
+  const idx = fixedIdx !== undefined ? fixedIdx : Math.round((88 - top) / ITEM_H);
+  [...items.children].forEach((c, i) => {
+    const isCur = i === idx;
+    c.className = 'wheel-item' + (isCur ? ' cur' : '');
+  });
+  // 更新对应日期部分
+  if (col.id === 'wheelYearCol') wheelDate.y = parseInt(values[idx], 10);
+  if (col.id === 'wheelMonthCol') wheelDate.m = parseInt(values[idx], 10);
+  if (col.id === 'wheelDayCol') wheelDate.d = parseInt(values[idx], 10);
+  if (col.id === 'wheelMonthCol' || col.id === 'wheelYearCol') rebuildDayCol();
+}
+
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+
+function rebuildDayCol() {
+  const n = daysInMonth(wheelDate.y, wheelDate.m);
+  const values = [];
+  for (let i = 1; i <= n; i++) values.push(pad(i));
+  const cur = Math.min(wheelDate.d - 1, n - 1);
+  buildWheel(document.getElementById('wheelDayCol'), values, cur);
+  document.getElementById('wheelDayCol').querySelector('.wheel-items').style.top = (88 - cur * ITEM_H) + 'px';
+}
+
+function openWheel(initial, cb) {
+  const p = (initial || '2026-09-06').split('-');
+  wheelDate = { y: parseInt(p[0],10)||2026, m: parseInt(p[1],10)||9, d: parseInt(p[2],10)||6 };
+  wheelCallback = cb;
+  // 年
+  const years = [];
+  for (let y = 2020; y <= 2035; y++) years.push(y);
+  buildWheel(document.getElementById('wheelYearCol'), years, years.indexOf(wheelDate.y));
+  document.getElementById('wheelYearCol').querySelector('.wheel-items').style.top = (88 - (years.indexOf(wheelDate.y)) * ITEM_H) + 'px';
+  // 月
+  const months = [];
+  for (let m = 1; m <= 12; m++) months.push(m + '月');
+  buildWheel(document.getElementById('wheelMonthCol'), months, wheelDate.m - 1);
+  document.getElementById('wheelMonthCol').querySelector('.wheel-items').style.top = (88 - (wheelDate.m - 1) * ITEM_H) + 'px';
+  // 日
+  rebuildDayCol();
+  document.getElementById('wheelMask').classList.add('open');
+}
+
+function wheelClose() {
+  document.getElementById('wheelMask').classList.remove('open');
+  wheelCallback = null;
+}
+
+function wheelConfirm() {
+  const dateStr = wheelDate.y + '-' + pad(wheelDate.m) + '-' + pad(wheelDate.d);
+  document.getElementById('wheelMask').classList.remove('open');
+  if (wheelCallback) wheelCallback(dateStr);
+  wheelCallback = null;
 }
 
 /* ========== Tab ========== */
@@ -821,7 +990,6 @@ function guideWelcome() {
 }
 
 function guideSchool() {
-  const kw = '';
   const list = SCHOOLS.slice(0, 8);
   guideCard.innerHTML =
     '<div class="guide-steps">' +
@@ -832,6 +1000,7 @@ function guideSchool() {
       '<div class="gstep"><div class="gstep-num">3</div><div class="gstep-label">清单</div></div>' +
     '</div>' +
     '<div class="guide-search"><span>⌕</span><input id="guideSearch" placeholder="搜索学校名称" oninput="guideFilter(this.value)"></div>' +
+    '<button class="btn-primary-add guide-add-btn" onclick="guideAddSchool()">＋ 添加自定义学校</button>' +
     '<div class="guide-pick" id="guidePick"></div>';
   renderGuideSchools(list);
 }
@@ -851,6 +1020,21 @@ function renderGuideSchools(list) {
       guideStep = 2; guideTime();
     };
     el.appendChild(row);
+  });
+}
+
+function guideAddSchool() {
+  const name = prompt('学校名称：');
+  if (!name || !name.trim()) return;
+  openWheel('2026-09-06', (d) => {
+    const newSchool = {name: name.trim(), date: d, campus: ''};
+    customSchools.push(newSchool);
+    store.set('customSchools', customSchools);
+    // 自动选中并进入下一步
+    school = {name: newSchool.name, date: newSchool.date, campus: ''};
+    store.set('school', school);
+    guideStep = 2;
+    guideTime();
   });
 }
 
@@ -887,26 +1071,12 @@ function guideQuick(el) {
 }
 
 function guideDatePick() {
-  // 用原生日期选择器（手机友好）
-  const input = document.createElement('input');
-  input.type = 'date';
-  input.value = school.date || '2026-09-06';
-  input.min = '2020-01-01';
-  input.max = '2035-12-31';
-  input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
-  document.body.appendChild(input);
-  input.addEventListener('change', () => {
-    if (input.value) {
-      school.date = input.value;
-      store.set('school', school);
-      document.getElementById('guideDateVal').textContent = school.date;
-    }
-    document.body.removeChild(input);
+  openWheel(school.date || '2026-09-06', (d) => {
+    school.date = d;
+    store.set('school', school);
+    const el = document.getElementById('guideDateVal');
+    if (el) el.textContent = d;
   });
-  input.addEventListener('blur', () => {
-    setTimeout(() => { if (document.body.contains(input)) document.body.removeChild(input); }, 500);
-  });
-  input.showPicker ? input.showPicker() : input.click();
 }
 
 function guideNext() {
