@@ -180,8 +180,13 @@
   .progress-row { display:flex; align-items:baseline; margin-bottom:12px; }
   .progress-num { font-size:40px; font-weight:700; color:var(--accent); }
   .progress-total { font-size:14px; color:var(--text-dim); margin-left:8px; }
-  .progress-bar { height:6px; background:var(--glass-strong); border-radius:999px; overflow:hidden; }
-  .progress-fill { height:100%; background:linear-gradient(90deg, var(--accent), var(--accent-bright)); border-radius:999px; transition:width .5s cubic-bezier(.16,1,.3,1); box-shadow:0 0 12px var(--accent); }
+  .progress-bar { height:6px; background:var(--glass-strong); border-radius:999px; overflow:hidden; position:relative; }
+  .progress-fill { height:100%; background:linear-gradient(90deg, var(--accent), var(--accent-bright)); border-radius:999px; transition:width .5s cubic-bezier(.16,1,.3,1); box-shadow:0 0 12px var(--accent); position:relative; }
+  .progress-fill::after {
+    content:''; position:absolute; right:-3px; top:50%; transform:translateY(-50%);
+    width:10px; height:10px; border-radius:50%;
+    background:var(--accent-bright); box-shadow:0 0 8px var(--accent-bright);
+  }
   .progress-tip { margin-top:10px; font-size:12px; color:var(--text-dim); }
 
   /* 清单 */
@@ -191,20 +196,39 @@
   .group-actions { display:flex; gap:14px; }
   .act { font-size:11px; color:var(--text-dim); cursor:pointer; }
   .act.danger { color:var(--danger); }
-  .item { display:flex; align-items:flex-start; gap:12px; padding:12px 16px; border-radius:12px; cursor:pointer; transition:background .25s; }
+  .item { display:flex; align-items:flex-start; gap:12px; padding:12px 16px; border-radius:12px; cursor:pointer; transition: background .25s, transform .15s; }
   .item:hover { background: var(--accent-soft); }
+  .item:active { transform: scale(.985); }
+  /* 勾选动效：弹性回弹（有理由的动效：状态反馈） */
   .box {
     width:22px; height:22px; border-radius:50%;
     border:2px solid rgba(141,143,150,0.55); flex-shrink:0; margin-top:2px;
     display:flex; align-items:center; justify-content:center;
     transition: all .3s cubic-bezier(.16,1,.3,1);
+    position:relative;
+  }
+  .box::after {
+    content:''; position:absolute; inset:-5px; border-radius:50%;
+    border:1px solid var(--ok); opacity:0; transform:scale(.6);
+    transition: all .3s cubic-bezier(.16,1,.3,1);
   }
   .box.done { background:var(--ok); border-color:var(--ok); box-shadow:0 0 16px rgba(143,191,143,0.5); }
-  .tick { color:#fff; font-size:12px; font-weight:700; }
+  .box.done::after { opacity:.4; transform:scale(1); }
+  .tick { color:#fff; font-size:12px; font-weight:700; transform:scale(0); transition: transform .25s cubic-bezier(.34,1.56,.64,1) .05s; }
+  .box.done .tick { transform:scale(1); }
   .item-body { flex:1; display:flex; flex-direction:column; }
   .label { font-size:14px; line-height:1.5; }
   .label.done { color:var(--text-faint); text-decoration:line-through; }
   .hint { font-size:11px; color:var(--text-dim); margin-top:1px; }
+  .hint-empty { color:var(--text-faint); font-style: italic; }
+  .item-del {
+    width:26px; height:26px; border-radius:50%;
+    background: rgba(208,106,94,0.12); color:var(--danger);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; flex-shrink:0; margin-top:2px;
+    transition: all .2s; cursor:pointer;
+  }
+  .item-del:active { transform: scale(.85); background: rgba(208,106,94,0.25); }
   .add-item { display:flex; align-items:center; justify-content:center; gap:6px; padding:12px; color:var(--text-dim); font-size:12px; border-top:1px solid var(--hairline); margin-top:6px; cursor:pointer; }
   .add-group {
     display:flex; align-items:center; justify-content:center; gap:8px;
@@ -249,13 +273,13 @@
   .dock-item.active { background: rgba(255,255,255,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9); }
   [data-theme="dark"] .dock-item.active { background: rgba(255,255,255,0.12); }
   .dock-icon { font-size:26px; line-height:1; color:#1c1c1e; transition: all .3s; }
-  .dock-item.active .dock-icon { color:#007aff; transform: scale(1.08); }
+  .dock-item.active .dock-icon { color:#4a90d9; transform: scale(1.08); }
   [data-theme="dark"] .dock-icon { color:#d5d7dd; }
-  [data-theme="dark"] .dock-item.active .dock-icon { color:#0a84ff; }
+  [data-theme="dark"] .dock-item.active .dock-icon { color:#7ab0e8; }
   .dock-text { font-size:10px; color:#1c1c1e; }
-  .dock-item.active .dock-text { color:#007aff; font-weight:600; }
+  .dock-item.active .dock-text { color:#4a90d9; font-weight:600; }
   [data-theme="dark"] .dock-text { color:#d5d7dd; }
-  [data-theme="dark"] .dock-item.active .dock-text { color:#0a84ff; }
+  [data-theme="dark"] .dock-item.active .dock-text { color:#7ab0e8; }
 
   /* 模态（选学校/编辑弹窗） */
   .modal-mask {
@@ -483,17 +507,16 @@
 
 <!-- 选学校模态 -->
 <div class="modal-mask" id="schoolModal" onclick="if(event.target===this)closeSchoolModal()">
-  <div class="modal-sheet">
-    <div class="sheet-head"><span class="sheet-title">选择学校</span><span class="sheet-close" onclick="closeSchoolModal()">✕</span></div>
-    <div class="search-box">
-      <span>⌕</span>
-      <input id="schoolSearch" placeholder="搜索学校名称" oninput="filterSchools(this.value)">
-    </div>
-    <div id="schoolList"></div>
-    <button class="btn-ghost custom-btn" onclick="addCustomSchool()">＋ 添加自定义学校</button>
+<div class="modal-sheet">
+  <div class="sheet-head"><span class="sheet-title">选择学校</span><span class="sheet-close" onclick="closeSchoolModal()">✕</span></div>
+  <div class="search-box">
+    <span>⌕</span>
+    <input id="schoolSearch" placeholder="搜索学校名称" oninput="filterSchools(this.value)">
   </div>
+  <div id="schoolList"></div>
+  <button class="btn-ghost custom-btn" onclick="addCustomSchool()">＋ 添加自定义学校</button>
 </div>
-
+</div>
 <!-- 首次访问引导 -->
 <div class="guide-mask" id="guideMask">
   <div class="guide-card" id="guideCard"></div>
@@ -612,10 +635,13 @@ function renderGroups() {
       '<div class="group-actions"><span class="act" onclick="renameGroup('+gi+')">重命名</span>' +
       '<span class="act danger" onclick="deleteGroup('+gi+')">删除</span></div></div>';
     g.items.forEach((it, ii) => {
-      html += '<div class="item" onclick="toggleItem('+gi+','+ii+')" oncontextmenu="event.preventDefault();deleteItem('+gi+','+ii+')">' +
+      html += '<div class="item" onclick="toggleItem('+gi+','+ii+')">' +
         '<span class="box'+(it.done?' done':'')+'">'+(it.done?'<span class="tick">✓</span>':'')+'</span>' +
-        '<span class="item-body"><span class="label'+(it.done?' done':'')+'">'+it[0]+'</span>' +
-        (it[1] ? '<span class="hint">'+it[1]+'</span>' : '') + '</span></div>';
+        '<span class="item-body">' +
+          '<span class="label'+(it.done?' done':'')+'">'+it[0]+'</span>' +
+          (it[1] ? '<span class="hint" onclick="event.stopPropagation();editHint('+gi+','+ii+')">'+it[1]+' ✎</span>' : '<span class="hint hint-empty" onclick="event.stopPropagation();editHint('+gi+','+ii+')">添加备注 ✎</span>') +
+        '</span>' +
+        '<span class="item-del" onclick="event.stopPropagation();deleteItem('+gi+','+ii+')">✕</span></div>';
     });
     html += '<div class="add-item" onclick="addItem('+gi+')"><span class="add-icon">＋</span>添加物品</div>';
     div.innerHTML = html;
@@ -638,6 +664,14 @@ function addItem(gi) {
 function deleteItem(gi, ii) {
   if (confirm('删除「'+items[gi].items[ii][0]+'」？')) {
     items[gi].items.splice(ii, 1);
+    store.set('items', items); renderAll();
+  }
+}
+function editHint(gi, ii) {
+  const cur = items[gi].items[ii][1] || '';
+  const h = prompt('编辑备注（可留空）：', cur);
+  if (h !== null) {
+    items[gi].items[ii][1] = h.trim();
     store.set('items', items); renderAll();
   }
 }
@@ -691,8 +725,7 @@ function renderSchoolList(list) {
       school = {name: s.name, date: s.date, campus: s.campus || ''};
       store.set('school', school);
       closeSchoolModal(); renderAll();
-    };
-    el.appendChild(row);
+    }; el.appendChild(row);
   });
 }
 function addCustomSchool() {
