@@ -1023,9 +1023,15 @@ function buildWheel(col, values, curIdx) {
     const d = document.createElement('div');
     d.className = 'wheel-item' + (i === curIdx ? ' cur' : '');
     d.textContent = v;
+    // 点击直接选中（鼠标友好）
+    d.addEventListener('click', () => {
+      items.style.top = (88 - i * ITEM_H) + 'px';
+      updateCur(col, items, values, i);
+    });
     items.appendChild(d);
   });
   col.appendChild(items);
+  col.__values = values;
   // 触控滑动
   let startY = 0, startTop = 0, dragging = false;
   col.addEventListener('touchstart', e => {
@@ -1050,6 +1056,50 @@ function buildWheel(col, values, curIdx) {
     dragging = false;
     items.classList.remove('touch');
     snap(col, items, values);
+  });
+
+  // 鼠标拖拽（电脑支持）
+  col.addEventListener('mousedown', e => {
+    __wheelMouse.mouseDown = true;
+    __wheelMouse.startY = e.clientY;
+    __wheelMouse.activeCol = col;
+    __wheelMouse.startTop = parseInt(items.style.top, 10) || 88;
+    items.classList.add('touch');
+    e.preventDefault();
+  });
+}
+
+/* 模块级鼠标状态 + 全局监听（只绑一次） */
+const __wheelMouse = { mouseDown: false, startY: 0, startTop: 0, activeCol: null };
+if (!window.__wheelMouseBound) {
+  window.__wheelMouseBound = true;
+  document.addEventListener('mousemove', e => {
+    const m = __wheelMouse;
+    if (!m.mouseDown || !m.activeCol) return;
+    const col = m.activeCol;
+    const items = col.querySelector('.wheel-items');
+    const values = col.__values;
+    if (!items || !values) return;
+    const dy = e.clientY - m.startY;
+    let top = m.startTop + dy;
+    const maxTop = 88;
+    const minTop = 88 - (values.length - 1) * ITEM_H;
+    top = Math.max(minTop, Math.min(maxTop, top));
+    items.style.top = top + 'px';
+    updateCur(col, items, values);
+  });
+  document.addEventListener('mouseup', () => {
+    const m = __wheelMouse;
+    if (!m.mouseDown || !m.activeCol) return;
+    m.mouseDown = false;
+    const col = m.activeCol;
+    const items = col.querySelector('.wheel-items');
+    const values = col.__values;
+    if (items) {
+      items.classList.remove('touch');
+      snap(col, items, values);
+    }
+    m.activeCol = null;
   });
 }
 
